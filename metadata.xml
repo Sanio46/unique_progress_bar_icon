@@ -1,7 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <metadata>
-	<name>Unique Progress Bar Icon</name>
-	<directory>unique_progress_bar_icon</directory>
-	<description/>
-	<version>1.0</version>
-	<visibility/>
+    <name>Unique Progress Bar Icon</name>
+    <directory>unique_progress_bar_icon</directory>
+    <id>3228200009</id>
+    <description>[h1] THIS MOD REQUIRES REPENTOGON TO DOWNLOAD[/h1]
+[h2]CLICK [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3127536138&amp;searchtext=REPENTOGON]HERE[/url] TO DOWNLOAD[/h2]
+
+A neat little mod that automagically updates the Isaac icon on the stage transition screen to their co-op icon. The co-op icon actually originates from the one on this transition screen, turns out. It even works with modded characters! If a modded character does not have a co-op icon, it will revert to the default Isaac icon.
+
+For local coders, there's even a few API options. See below:
+[code]
+---Global
+UniqueProgressBarIcon
+
+---Functions
+
+---Offset the Y position of an icon for a specific PlayerType.
+---@param playerType PlayerType
+---@param offset integer
+function UniqueProgressBarIcon.AddIconYOffset(playerType, offset)
+
+---Set a different icon to use for a specific PlayerType instead of their default co-op icon. Set the anm2 file it needs to play and its respective animation.
+---@param playerType PlayerType
+---@param anm2 string
+---@param animation string
+function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
+
+---Reset the icon set by UniqueProgressBarIcon.SetIcon()
+---@param playerType PlayerType
+function UniqueProgressBarIcon.ResetIcon(playerType)
+[/code]
+</description>
+    <version>1.2</version>
+    <visibility>Private</visibility>
+    <tag id="Lua"/>
+    <tag id="Player Characters"/>
+    <tag id="Graphics"/>
 </metadata>

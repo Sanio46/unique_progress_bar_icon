@@ -1,3 +1,5 @@
+-- VERSION 1.0.0
+
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
 
