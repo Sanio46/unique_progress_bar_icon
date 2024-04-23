@@ -1,4 +1,4 @@
--- VERSION 1.0.0
+-- VERSION 1.0.1
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -17,8 +17,13 @@ local firstIconPos
 local iconOffset
 local movingPos = 0
 local currentNightmareFrame = 0
-local shouldReverse = false
+local ICON_DIRECTION = {
+	FORWARD = 0,
+	BACKWARD = 1,
+	STILL = 2
+}
 
+local direction = ICON_DIRECTION.FORWARD
 local UNKNOWN_STAGE_FRAME = 17
 
 ---@type table<PlayerType, integer>
@@ -106,20 +111,40 @@ function UniqueProgressBarIcon.ResetIcon(playerType)
 	customAnims[playerType] = nil
 end
 
+---@param nextStage LevelStage
+function mod:OnLevelSelect(nextStage)
+	local currentStage = game:GetLevel():GetStage()
+	if currentStage < nextStage then
+		direction = ICON_DIRECTION.FORWARD
+	elseif currentStage > nextStage then
+		direction = ICON_DIRECTION.BACKWARD
+	elseif currentStage == nextStage then
+		direction = ICON_DIRECTION.STILL
+	end
+end
+
+--Set to IMPORTANT as this callback ignores if you set a stage behind or as the same as current stage, always moving forwards instead.
+--Don't want the icon check to be altered by other mods altering it.
+mod:AddPriorityCallback(ModCallbacks.MC_PRE_LEVEL_SELECT, CallbackPriority.IMPORTANT, mod.OnLevelSelect)
+
 function mod:CalculateProgressBarLength()
 	local levelEnd = game:GetLevel():GetStage()
 	local totalLength
 	local barLength
-	shouldReverse = Isaac.GetChallenge() == Challenge.CHALLENGE_BACKASSWARDS
-	local levelStart = shouldReverse and levelEnd + 1 or levelEnd - 1
-	if game:IsGreedMode() then
+	local levelStart = levelEnd - 1
+	if direction == ICON_DIRECTION.BACKWARD then
+		levelStart = levelEnd + 1
+	elseif direction == ICON_DIRECTION.STILL then
+		levelStart = levelEnd
+	end
+	if game:IsGreedMode() then --Greed Mode's stage length never changes
 		barLength = 7
-	elseif levelEnd == LevelStage.STAGE8 then
+	elseif levelEnd == LevelStage.STAGE8 then --Home
 		levelStart = 2
 		levelEnd = 1
 		barLength = 1
-		shouldReverse = true
-	elseif game:GetChallengeParams():GetEndStage() == LevelStage.STAGE3_2 or not Isaac.GetPersistentGameData() then
+		direction = ICON_DIRECTION.BACKWARD
+	elseif game:GetChallengeParams():GetEndStage() == LevelStage.STAGE3_2 or not Isaac.GetPersistentGameData():Unlocked(Achievement.WOMB) then
 		barLength = 6
 	else
 		barLength = 8
@@ -138,7 +163,7 @@ function mod:CalculateProgressBarLength()
 	totalLength = MAP_ICON_LENGTH * barLength + (barLength - 1) --Icons are separated by 1 pixel
 	firstIconPos = (totalLength - MAP_ICON_LENGTH) / 2
 	iconOffset = MAP_ICON_LENGTH * (levelStart - 1) + (levelStart - 1)
-	iconOffset = shouldReverse and iconOffset or iconOffset - 1
+	iconOffset = direction == ICON_DIRECTION.BACKWARD and iconOffset or iconOffset - 1
 	movingPos = 0
 end
 
@@ -187,7 +212,11 @@ function mod:OnNightmareRender()
 	isaacIcon.Offset = frameData:GetPos()
 	currentNightmareFrame = currentNightmareFrame + 1
 	if currentNightmareFrame >= TRANSITION_FRAME_START and currentNightmareFrame <= TRANSITION_FRAME_END then
-		movingPos = shouldReverse and movingPos - ICON_SPEED or movingPos + ICON_SPEED
+		if direction == ICON_DIRECTION.FORWARD then
+			movingPos = movingPos + ICON_SPEED
+		elseif direction == ICON_DIRECTION.BACKWARD then
+			movingPos = movingPos - ICON_SPEED
+		end
 	end
 	isaacIcon:RenderLayer(0,
 		Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconOffset + movingPos, 20 + currentCustomOffset))
