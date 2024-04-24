@@ -1,4 +1,4 @@
--- VERSION 1.0.1
+-- VERSION 1.0.2
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -24,6 +24,8 @@ local ICON_DIRECTION = {
 }
 
 local direction = ICON_DIRECTION.FORWARD
+local repDirection = ICON_DIRECTION.STILL
+local useRepDirection = false
 local UNKNOWN_STAGE_FRAME = 17
 
 ---@type table<PlayerType, integer>
@@ -101,7 +103,7 @@ function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
 	if not sprite:IsPlaying(animation) then
 		UniqueProgressBarError("3", animation, "string", "(Animation name is invalid).")
 	end
-	customAnims[playerType] = {Anm2 = anm2, Animation = animation}
+	customAnims[playerType] = { Anm2 = anm2, Animation = animation }
 end
 
 ---Reset the icon set by UniqueProgressBarIcon.SetIcon()
@@ -111,9 +113,32 @@ function UniqueProgressBarIcon.ResetIcon(playerType)
 	customAnims[playerType] = nil
 end
 
+local function isTransitioningToSameFloorRepAlt(currentStage, nextStage, currentStageType, nextStageType)
+	if currentStage ~= nextStage or currentStage > LevelStage.STAGE3_2 then return false end
+
+	if currentStageType < StageType.STAGETYPE_REPENTANCE
+		and nextStageType >= StageType.STAGETYPE_REPENTANCE
+	then
+		repDirection = ICON_DIRECTION.FORWARD
+		return true
+	elseif currentStageType >= StageType.STAGETYPE_REPENTANCE
+		and nextStageType < StageType.STAGETYPE_REPENTANCE
+	then
+		repDirection = ICON_DIRECTION.BACKWARD
+		return true
+	end
+end
+
 ---@param nextStage LevelStage
-function mod:OnLevelSelect(nextStage)
+---@param nextStageType StageType
+function mod:OnLevelSelect(nextStage, nextStageType)
 	local currentStage = game:GetLevel():GetStage()
+	local currentStageType = game:GetLevel():GetStageType()
+	if isTransitioningToSameFloorRepAlt(currentStage, nextStage, currentStageType, nextStageType) then
+		useRepDirection = true
+	else
+		useRepDirection = false
+	end
 	if currentStage < nextStage then
 		direction = ICON_DIRECTION.FORWARD
 	elseif currentStage > nextStage then
@@ -131,13 +156,23 @@ function mod:CalculateProgressBarLength()
 	local levelEnd = game:GetLevel():GetStage()
 	local totalLength
 	local barLength
+	if useRepDirection then
+		direction = repDirection
+		if direction == ICON_DIRECTION.FORWARD then
+			levelEnd = levelEnd + 1
+		elseif direction == ICON_DIRECTION.BACKWARD then
+			levelEnd = levelEnd - 1
+		end
+	elseif game:GetLevel():GetStageType() >= StageType.STAGETYPE_REPENTANCE then
+		levelEnd = levelEnd + 1
+	end
 	local levelStart = levelEnd - 1
 	if direction == ICON_DIRECTION.BACKWARD then
 		levelStart = levelEnd + 1
 	elseif direction == ICON_DIRECTION.STILL then
 		levelStart = levelEnd
 	end
-	if game:IsGreedMode() then --Greed Mode's stage length never changes
+	if game:IsGreedMode() then             --Greed Mode's stage length never changes
 		barLength = 7
 	elseif levelEnd == LevelStage.STAGE8 then --Home
 		levelStart = 2
@@ -149,17 +184,20 @@ function mod:CalculateProgressBarLength()
 	else
 		barLength = 8
 		local progressBar = NightmareScene.GetProgressBarMap()
-		for levelStage = LevelStage.STAGE4_3, LevelStage.STAGE7 do
+		for levelStage = LevelStage.STAGE4_2, LevelStage.STAGE7 do
 			local frame = progressBar[levelStage + 1]
 			if levelEnd >= levelStage then
-				if levelStage == LevelStage.STAGE4_3 and frame == UNKNOWN_STAGE_FRAME then
+				if levelStage == LevelStage.STAGE4_2 and frame == 25 then
+					barLength = barLength + 1
+				elseif levelStage == LevelStage.STAGE4_3 and frame == UNKNOWN_STAGE_FRAME then
 					levelStart = levelStart - 1
-				elseif levelStage ~= LevelStage.STAGE4_3 then
+				elseif levelStage > LevelStage.STAGE4_3 then
 					barLength = barLength + 1
 				end
 			end
 		end
 	end
+
 	totalLength = MAP_ICON_LENGTH * barLength + (barLength - 1) --Icons are separated by 1 pixel
 	firstIconPos = (totalLength - MAP_ICON_LENGTH) / 2
 	iconOffset = MAP_ICON_LENGTH * (levelStart - 1) + (levelStart - 1)
