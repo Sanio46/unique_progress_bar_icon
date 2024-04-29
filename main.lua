@@ -1,4 +1,4 @@
--- VERSION 1.0.2
+-- VERSION 1.0.3
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -191,7 +191,7 @@ function mod:CalculateProgressBarLength()
 					barLength = barLength + 1
 				elseif levelStage == LevelStage.STAGE4_3 and frame == UNKNOWN_STAGE_FRAME then
 					levelStart = levelStart - 1
-				elseif levelStage > LevelStage.STAGE4_3 then
+				elseif levelStage >= LevelStage.STAGE4_3 then
 					barLength = barLength + 1
 				end
 			end
