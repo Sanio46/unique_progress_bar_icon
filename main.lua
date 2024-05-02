@@ -1,4 +1,4 @@
--- VERSION 1.0.3
+-- VERSION 1.0.4
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -33,7 +33,9 @@ local customOffsets = {}
 local currentCustomOffset = 0
 
 ---@type table<PlayerType, {Anm2: string, Animation: string}>
-local customAnims = {}
+local customAnims = {
+	[PlayerType.PLAYER_LAZARUS2_B] = {Anm2 = "gfx/ui/coop_tainted_laz.anm2", Animation = "Main"}
+}
 
 UniqueProgressBarIcon = {}
 
@@ -154,28 +156,29 @@ mod:AddPriorityCallback(ModCallbacks.MC_PRE_LEVEL_SELECT, CallbackPriority.IMPOR
 
 function mod:CalculateProgressBarLength()
 	local levelEnd = game:GetLevel():GetStage()
+	local endPos = levelEnd
 	local totalLength
 	local barLength
 	if useRepDirection then
 		direction = repDirection
 		if direction == ICON_DIRECTION.FORWARD then
-			levelEnd = levelEnd + 1
+			endPos = endPos + 1
 		elseif direction == ICON_DIRECTION.BACKWARD then
-			levelEnd = levelEnd - 1
+			endPos = endPos - 1
 		end
 	elseif game:GetLevel():GetStageType() >= StageType.STAGETYPE_REPENTANCE then
-		levelEnd = levelEnd + 1
+		endPos = endPos + 1
 	end
-	local levelStart = levelEnd - 1
+	local startPos = endPos - 1
 	if direction == ICON_DIRECTION.BACKWARD then
-		levelStart = levelEnd + 1
+		startPos = endPos + 1
 	elseif direction == ICON_DIRECTION.STILL then
-		levelStart = levelEnd
+		startPos = endPos
 	end
 	if game:IsGreedMode() then             --Greed Mode's stage length never changes
 		barLength = 7
 	elseif levelEnd == LevelStage.STAGE8 then --Home
-		levelStart = 2
+		startPos = 2
 		levelEnd = 1
 		barLength = 1
 		direction = ICON_DIRECTION.BACKWARD
@@ -190,18 +193,16 @@ function mod:CalculateProgressBarLength()
 				if levelStage == LevelStage.STAGE4_2 and frame == 25 then
 					barLength = barLength + 1
 				elseif levelStage == LevelStage.STAGE4_3 and frame == UNKNOWN_STAGE_FRAME then
-					levelStart = levelStart - 1
+					startPos = startPos - 1
 				elseif levelStage >= LevelStage.STAGE4_3 then
 					barLength = barLength + 1
 				end
 			end
 		end
 	end
-
 	totalLength = MAP_ICON_LENGTH * barLength + (barLength - 1) --Icons are separated by 1 pixel
 	firstIconPos = (totalLength - MAP_ICON_LENGTH) / 2
-	iconOffset = MAP_ICON_LENGTH * (levelStart - 1) + (levelStart - 1)
-	iconOffset = direction == ICON_DIRECTION.BACKWARD and iconOffset or iconOffset - 1
+	iconOffset = MAP_ICON_LENGTH * (startPos - 1) + (startPos - 1)
 	movingPos = 0
 end
 
