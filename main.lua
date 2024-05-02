@@ -1,4 +1,4 @@
--- VERSION 1.0.4
+-- VERSION 1.0.5
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -34,7 +34,8 @@ local currentCustomOffset = 0
 
 ---@type table<PlayerType, {Anm2: string, Animation: string}>
 local customAnims = {
-	[PlayerType.PLAYER_LAZARUS2_B] = {Anm2 = "gfx/ui/coop_tainted_laz.anm2", Animation = "Main"}
+	[PlayerType.PLAYER_LAZARUS2] = {Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Normal"},
+	[PlayerType.PLAYER_LAZARUS2_B] = {Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Tainted"}
 }
 
 UniqueProgressBarIcon = {}
