@@ -31,7 +31,7 @@ function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
 function UniqueProgressBarIcon.ResetIcon(playerType)
 [/code]
 </description>
-    <version>1.7</version>
+    <version>1.8</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Player Characters"/>
