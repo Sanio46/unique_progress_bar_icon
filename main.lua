@@ -1,4 +1,4 @@
--- VERSION 1.0.5
+-- VERSION 1.0.6
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -31,6 +31,7 @@ local UNKNOWN_STAGE_FRAME = 17
 ---@type table<PlayerType, integer>
 local customOffsets = {}
 local currentCustomOffset = 0
+local customBlacklist = {}
 
 ---@type table<PlayerType, {Anm2: string, Animation: string}>
 local customAnims = {
@@ -114,6 +115,13 @@ end
 function UniqueProgressBarIcon.ResetIcon(playerType)
 	if not UniqueIsaacPlayerTypeCheck(playerType) then return end
 	customAnims[playerType] = nil
+end
+
+---If you want to do your own thing. Sets whether the icon will be rendered or not.
+---@param playerType PlayerType
+---@param bool boolean True to stop rendering, false to render as normal again.
+function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
+	customBlacklist[playerType] = bool
 end
 
 local function isTransitioningToSameFloorRepAlt(currentStage, nextStage, currentStageType, nextStageType)
@@ -223,8 +231,8 @@ function mod:OnNightmareRender()
 	if not layerData then return end
 	local frameData = layerData:GetFrame(progressSprite:GetFrame())
 	if not frameData then return end
+	local playerType = Isaac.GetPlayer():GetPlayerType()
 	if currentNightmareFrame == 0 then
-		local playerType = Isaac.GetPlayer():GetPlayerType()
 		if customOffsets[playerType] then
 			currentCustomOffset = customOffsets[playerType]
 		else
@@ -258,8 +266,10 @@ function mod:OnNightmareRender()
 			movingPos = movingPos - ICON_SPEED
 		end
 	end
-	isaacIcon:RenderLayer(0,
-		Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconOffset + movingPos, 20 + currentCustomOffset))
+	if not customBlacklist[playerType] then
+		isaacIcon:RenderLayer(0,
+			Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconOffset + movingPos, 20 + currentCustomOffset))
+	end
 	if Isaac.GetFrameCount() % 2 == 0 then
 		isaacIcon:Update()
 	end
