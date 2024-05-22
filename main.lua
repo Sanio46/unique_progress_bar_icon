@@ -1,4 +1,4 @@
--- VERSION 1.0.6
+-- VERSION 1.0.7
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -13,10 +13,11 @@ local TRANSITION_FRAME_END = 140
 local ICON_SPEED = 0.45
 local MAP_ICON_LENGTH = 26
 
-local firstIconPos
-local iconOffset
+local firstIconPos = 0
+local iconOffset = 0
 local movingPos = 0
 local currentNightmareFrame = 0
+local renderLayer = 0
 local ICON_DIRECTION = {
 	FORWARD = 0,
 	BACKWARD = 1,
@@ -35,8 +36,8 @@ local customBlacklist = {}
 
 ---@type table<PlayerType, {Anm2: string, Animation: string}>
 local customAnims = {
-	[PlayerType.PLAYER_LAZARUS2] = {Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Normal"},
-	[PlayerType.PLAYER_LAZARUS2_B] = {Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Tainted"}
+	[PlayerType.PLAYER_LAZARUS2] = { Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Normal" },
+	[PlayerType.PLAYER_LAZARUS2_B] = { Anm2 = "gfx/ui/coop_lazarus_b.anm2", Animation = "Tainted" }
 }
 
 UniqueProgressBarIcon = {}
@@ -143,6 +144,7 @@ end
 ---@param nextStage LevelStage
 ---@param nextStageType StageType
 function mod:OnLevelSelect(nextStage, nextStageType)
+	currentNightmareFrame = 0
 	local currentStage = game:GetLevel():GetStage()
 	local currentStageType = game:GetLevel():GetStageType()
 	if isTransitioningToSameFloorRepAlt(currentStage, nextStage, currentStageType, nextStageType) then
@@ -223,6 +225,59 @@ end
 
 mod:AddCallback(ModCallbacks.MC_POST_NIGHTMARE_SCENE_SHOW, mod.OnNightmareShow)
 
+local function resetIsaacIcon()
+	isaacIcon:Load("gfx/ui/coop menu.anm2", true)
+	isaacIcon:SetFrame("Main", 1)
+end
+
+local function loadIsaacIcon()
+	renderLayer = 0
+	local playerType = Isaac.GetPlayer():GetPlayerType()
+	if customOffsets[playerType] then
+		currentCustomOffset = customOffsets[playerType]
+	else
+		currentCustomOffset = 0
+	end
+	if customAnims[playerType] then
+		local customAnimation = customAnims[playerType]
+		isaacIcon:Load(customAnimation.Anm2, true)
+		isaacIcon:Play(customAnimation.Animation, true)
+	elseif playerType >= PlayerType.PLAYER_ISAAC and playerType < PlayerType.NUM_PLAYER_TYPES then
+		isaacIcon:Load("gfx/ui/coop menu.anm2", true)
+		isaacIcon:SetFrame("Main", playerType + 1)
+	else
+		local coopSprite = EntityConfig.GetPlayer(playerType):GetModdedCoopMenuSprite()
+		if coopSprite then
+			isaacIcon:Load(coopSprite:GetFilename(), true)
+			if not isaacIcon:IsLoaded() then
+				resetIsaacIcon()
+			else
+				isaacIcon:SetFrame(Isaac.GetPlayer():GetName(), 0)
+				if isaacIcon:GetAnimation() ~= Isaac.GetPlayer():GetName() then
+					resetIsaacIcon()
+				else
+					local iconAnimData = isaacIcon:GetCurrentAnimationData()
+					if not iconAnimData:GetLayer(0):GetFrame(0) then
+						local foundFrame = false
+						for _, iconLayerData in ipairs(iconAnimData:GetAllLayers()) do
+							if iconLayerData:GetFrame(0) then
+								renderLayer = iconLayerData:GetLayerID()
+								foundFrame = true
+								break
+							end
+						end
+						if not foundFrame then
+							resetIsaacIcon()
+						end
+					end
+				end
+			end
+		else
+			resetIsaacIcon()
+		end
+	end
+end
+
 function mod:OnNightmareRender()
 	if NightmareScene.IsDogmaNightmare() then return end
 	local progressSprite = NightmareScene.GetProgressBarSprite()
@@ -233,28 +288,7 @@ function mod:OnNightmareRender()
 	if not frameData then return end
 	local playerType = Isaac.GetPlayer():GetPlayerType()
 	if currentNightmareFrame == 0 then
-		if customOffsets[playerType] then
-			currentCustomOffset = customOffsets[playerType]
-		else
-			currentCustomOffset = 0
-		end
-		if customAnims[playerType] then
-			local customAnimation = customAnims[playerType]
-			isaacIcon:Load(customAnimation.Anm2, true)
-			isaacIcon:Play(customAnimation.Animation, true)
-		elseif playerType >= PlayerType.PLAYER_ISAAC and playerType < PlayerType.NUM_PLAYER_TYPES then
-			isaacIcon:Load("gfx/ui/coop menu.anm2", true)
-			isaacIcon:SetFrame("Main", playerType + 1)
-		else
-			local coopSprite = EntityConfig.GetPlayer(playerType):GetModdedCoopMenuSprite()
-			if coopSprite then
-				isaacIcon:Load(coopSprite:GetFilename(), true)
-				isaacIcon:SetFrame(Isaac.GetPlayer():GetName(), 0)
-			else
-				isaacIcon:Load("gfx/ui/coop menu.anm2", true)
-				isaacIcon:SetFrame("Main", 1)
-			end
-		end
+		loadIsaacIcon()
 	end
 	isaacIcon.Scale = frameData:GetScale()
 	isaacIcon.Offset = frameData:GetPos()
@@ -267,7 +301,7 @@ function mod:OnNightmareRender()
 		end
 	end
 	if not customBlacklist[playerType] then
-		isaacIcon:RenderLayer(0,
+		isaacIcon:RenderLayer(renderLayer,
 			Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconOffset + movingPos, 20 + currentCustomOffset))
 	end
 	if Isaac.GetFrameCount() % 2 == 0 then
@@ -276,5 +310,20 @@ function mod:OnNightmareRender()
 end
 
 mod:AddCallback(ModCallbacks.MC_POST_NIGHTMARE_SCENE_RENDER, mod.OnNightmareRender)
+
+if currentNightmareFrame > 0 then
+	currentNightmareFrame = 0
+end
+
+function mod:TestCoopIcon()
+	if currentNightmareFrame == 0 then
+		loadIsaacIcon()
+		currentNightmareFrame = 1
+	end
+	local center = Vector(Isaac.GetScreenWidth() / 2, (Isaac.GetScreenHeight() / 2))
+	isaacIcon:RenderLayer(renderLayer, center)
+	Isaac.RenderText(isaacIcon:GetAnimation(), center.X - 20, center.Y + 10, 1, 1, 1, 1)
+end
+--mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.TestCoopIcon)
 
 return mod

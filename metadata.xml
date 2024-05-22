@@ -29,9 +29,14 @@ function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
 ---Reset the icon set by UniqueProgressBarIcon.SetIcon()
 ---@param playerType PlayerType
 function UniqueProgressBarIcon.ResetIcon(playerType)
+
+---If you want to do your own thing. Sets whether the icon will be rendered or not.
+---@param playerType PlayerType
+---@param bool boolean True to stop rendering, false to render as normal again.
+function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
 [/code]
 </description>
-    <version>1.8</version>
+    <version>1.10</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Player Characters"/>
