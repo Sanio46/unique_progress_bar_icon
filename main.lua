@@ -1,4 +1,4 @@
--- VERSION 1.0.7
+-- VERSION 1.1
 
 ---@class ModReference
 local mod = RegisterMod("UniqueProgressBarIcon", 1)
@@ -324,6 +324,49 @@ function mod:TestCoopIcon()
 	isaacIcon:RenderLayer(renderLayer, center)
 	Isaac.RenderText(isaacIcon:GetAnimation(), center.X - 20, center.Y + 10, 1, 1, 1, 1)
 end
+
 --mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.TestCoopIcon)
+
+local loadedIconForStageAPI = false
+
+function mod:RenderForStageAPI(name)
+	if not StageAPI or name ~= "StageAPI-RenderAboveHUD" then return end
+	local stageAnimData = StageAPI.TransitionAnimationData
+	---@type Sprite
+	local stageAPIIcon = stageAnimData.Sprites.IsaacIndicator
+	---@type Vector
+	local renderPos = stageAnimData.IsaacIndicatorPos
+	if loadedIconForStageAPI and (stageAnimData.State == 3 or game:GetRoom():GetFrameCount() > 0) then
+		loadedIconForStageAPI = false
+	end
+	if not renderPos or stageAnimData.State ~= 2 then return end
+	if stageAnimData.State == 2 and stageAnimData.Frame > 150 and not loadedIconForStageAPI then
+		stageAPIIcon:GetLayer(0):SetVisible(false)
+		loadIsaacIcon()
+		loadedIconForStageAPI = true
+	end
+	local animData = stageAPIIcon:GetCurrentAnimationData()
+	local layerData = animData:GetLayer(0)
+	if not layerData then return end
+	local frameData = layerData:GetFrame(stageAPIIcon:GetFrame())
+	if not frameData then return end
+	local playerType = Isaac.GetPlayer():GetPlayerType()
+	isaacIcon.Scale = frameData:GetScale()
+	isaacIcon.Offset = frameData:GetPos()
+	if stageAnimData.NightmareLastFrame and (stageAnimData.Sprites.Nightmare:GetFrame() >= stageAnimData.NightmareLastFrame - 20) then
+		local alpha = 1 - StageAPI.BlackScreenOverlay.Color.A
+		isaacIcon.Color = Color(alpha, alpha, alpha, 1)
+	else
+		isaacIcon.Color = stageAPIIcon.Color
+	end
+	if not customBlacklist[playerType] then
+		isaacIcon:RenderLayer(renderLayer, Vector(renderPos.X, renderPos.Y - 3 + currentCustomOffset))
+	end
+	if Isaac.GetFrameCount() % 2 == 0 then
+		isaacIcon:Update()
+	end
+end
+
+mod:AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, mod.RenderForStageAPI)
 
 return mod

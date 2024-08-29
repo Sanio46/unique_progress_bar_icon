@@ -4,9 +4,13 @@
     <directory>unique_progress_bar_icon</directory>
     <id>3228200009</id>
     <description>[h1] THIS MOD REQUIRES REPENTOGON TO DOWNLOAD[/h1]
-[h2]CLICK [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3127536138&amp;searchtext=REPENTOGON]HERE[/url] TO DOWNLOAD[/h2]
+[h2]CLICK [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3127536138&searchtext=REPENTOGON]HERE[/url] TO DOWNLOAD[/h2]
+
+[b]Now compatible with Stage API![/b]
 
 A neat little mod that automagically updates the Isaac icon on the stage transition screen to their co-op icon. The co-op icon actually originates from the one on this transition screen, turns out. It even works with modded characters! If a modded character does not have a co-op icon, it will revert to the default Isaac icon.
+
+[url=https://github.com/Sanio46/unique_progress_bar_icon]Github Repository[/url]
 
 For local coders, there's even a few API options. See below:
 [code]
@@ -35,6 +39,7 @@ function UniqueProgressBarIcon.ResetIcon(playerType)
 ---@param bool boolean True to stop rendering, false to render as normal again.
 function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
 [/code]
+
 </description>
     <version>1.10</version>
     <visibility>Public</visibility>
