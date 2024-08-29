@@ -40,7 +40,7 @@ function UniqueProgressBarIcon.ResetIcon(playerType)
 function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
 [/code]
 </description>
-    <version>1.10</version>
+    <version>1.11</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Player Characters"/>
