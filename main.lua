@@ -159,15 +159,15 @@ mod:AddCallback(ModCallbacks.MC_POST_NIGHTMARE_SCENE_SHOW, mod.OnNightmareShow)
 --#region rendering
 
 ---@param player EntityPlayer
----@overload fun(playerType: PlayerType, playerName: string)
-local function tryCreateModdedCoopIcon(player, playerName)
+---@overload fun(playerType: PlayerType)
+local function tryCreateModdedCoopIcon(player)
 	local playerType = type(player) == "number" and player or player:GetPlayerType()
 	local coopSprite = EntityConfig.GetPlayer(playerType):GetModdedCoopMenuSprite()
 	if not coopSprite then return end
 	local testSprite, wasLoadSuccessful = Sprite(coopSprite:GetFilename(), true)
 	if not wasLoadSuccessful then return end
 	coopSprite = testSprite
-	local name = playerName or player:GetName()
+	local name = EntityConfig.GetPlayer(playerType):GetName()
 	coopSprite:SetFrame(name, 0)
 	if coopSprite:GetAnimation() ~= name then return end
 	local iconAnimData = coopSprite:GetCurrentAnimationData()
@@ -188,8 +188,8 @@ end
 
 ---@param player EntityPlayer
 ---@return IsaacIcon
----@overload fun(playerType: PlayerType, playerName: string)
-function UniqueProgressBarIcon.CreateIcon(player, playerName)
+---@overload fun(playerType: PlayerType)
+function UniqueProgressBarIcon.CreateIcon(player)
 	local playerType = type(player) == "number" and player or player:GetPlayerType()
 	local iconData = {
 		PlayerType = playerType,
@@ -217,7 +217,7 @@ function UniqueProgressBarIcon.CreateIcon(player, playerName)
 	elseif playerType >= PlayerType.PLAYER_ISAAC and playerType < PlayerType.NUM_PLAYER_TYPES then
 		frameToSet = playerType + 1
 	else
-		local newSprite, renderLayer = tryCreateModdedCoopIcon(player, playerName)
+		local newSprite, renderLayer = tryCreateModdedCoopIcon(player)
 		if newSprite then
 			loadedModdedSprite = true
 			iconData.Icon = newSprite
