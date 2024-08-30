@@ -54,6 +54,7 @@ function UniqueProgressBarIcon.AddIconYOffset(playerType, offset)
 		or type(offset) ~= "number"
 	then
 		UniqueProgressBarError("2", offset, "AddIconYOffset", "number")
+		return
 	end
 	api.CustomYOffsets[playerType] = offset
 end
@@ -94,6 +95,7 @@ function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
 	end
 	if not wasLoaded then
 		UniqueProgressBarError("2", anm2, "SetIcon", "string", "(Anm2 failed to load).")
+		return
 	end
 
 	sprite:Stop()
@@ -102,8 +104,8 @@ function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
 		sprite:Play(animation)
 		if not sprite:IsPlaying(animation) then
 			UniqueProgressBarError("3", animation, "SetIcon", "string", "(Animation name is invalid).")
+			return
 		end
-		sprite:SetFrame(animation, 0)
 	end
 	local animTable = type(anm2) == "userdata" and { Sprite = sprite } or { Anm2 = anm2, Animation = animation }
 	api.CustomAnims[playerType] = animTable
@@ -133,11 +135,12 @@ function UniqueProgressBarIcon.RegisterTwin(twinPlayerType, mainPlayerType)
 	elseif not UniqueIsaacPlayerTypeCheck(twinPlayerType, "RegisterTwin") then
 		return
 	elseif mainPlayerType == twinPlayerType then
-		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType", "(mainPlayerType and twinPlayerType cannot be equal).")
+		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
+			"(mainPlayerType and twinPlayerType cannot be equal).")
 		return
 	elseif mainPlayerType == api.RegisteredTwins[twinPlayerType] then
-		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType", "(Cannot assign twinPlayerType as they already have an assigned twin).")
-		return
+		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
+			"(Cannot assign twinPlayerType as they already have an assigned twin).")
 	end
 	api.RegisteredTwins[mainPlayerType] = twinPlayerType
 end
