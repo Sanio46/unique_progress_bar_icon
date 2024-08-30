@@ -3,44 +3,23 @@
     <name>Unique Progress Bar Icon</name>
     <directory>unique_progress_bar_icon</directory>
     <id>3228200009</id>
-    <description>[h1] THIS MOD REQUIRES REPENTOGON TO DOWNLOAD[/h1]
-[h2]CLICK [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3127536138&amp;searchtext=REPENTOGON]HERE[/url] TO DOWNLOAD[/h2]
+    <description>[h1]NOTICE! THIS MOD REQUIRES[/h1]
 
-[b]Now compatible with Stage API![/b]
+[img]https://imgur.com/I4XYxoU.gif[/img]
 
-A neat little mod that automagically updates the Isaac icon on the stage transition screen to their co-op icon. The co-op icon actually originates from the one on this transition screen, turns out. It even works with modded characters! If a modded character does not have a co-op icon, it will revert to the default Isaac icon.
+You're the one person who doesn't skip the nightmare transition screen, or you remembered you have Dream Catcher. Looking at the animation, while your character is having a nightmare on the floor, the true nightmare is looking at that bland, inaccurate Isaac icon on the progress bar map! In fact, that very icon is what was used to create the co-op icons, and its odd to think it doesn't use said icons. Well, wish no longer, as this mod does that and more!
 
-[url=https://github.com/Sanio46/unique_progress_bar_icon]Github Repository[/url]
+[h3]Features[/h3]
+[list]
+[*]Renders the player's co-op icon in place of the typical Isaac icon that's displayed on the progress bar map.
+[*]Up to 4 players can be included on the map at the same time. More than 4 if you have twin characters!
+[*]Dark Esau can be seen on the previous floor as you move to the next if you're playing as Tainted Jacob.
+[*]Customizeable options with the power of My Dear ImGui. It's at the top of the screen when pressing the ~ key for the debug console under &quot;UPB Icon&quot;
+[*]Compatible with StageAPI!
+[/list]
 
-For local coders, there's even a few API options. See below:
-[code]
----Global
-UniqueProgressBarIcon
-
----Functions
-
----Offset the Y position of an icon for a specific PlayerType.
----@param playerType PlayerType
----@param offset integer
-function UniqueProgressBarIcon.AddIconYOffset(playerType, offset)
-
----Set a different icon to use for a specific PlayerType instead of their default co-op icon. Set the anm2 file it needs to play and its respective animation.
----@param playerType PlayerType
----@param anm2 string
----@param animation string
-function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
-
----Reset the icon set by UniqueProgressBarIcon.SetIcon()
----@param playerType PlayerType
-function UniqueProgressBarIcon.ResetIcon(playerType)
-
----If you want to do your own thing. Sets whether the icon will be rendered or not.
----@param playerType PlayerType
----@param bool boolean True to stop rendering, false to render as normal again.
-function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
-[/code]
-</description>
-    <version>1.11</version>
+To read up on the modding capabilities with this mod, refer to [url=github.com/Sanio46/unique_progress_bar_icon/wiki]the wiki on the GitHub repository[/url].</description>
+    <version>1.12</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Player Characters"/>
