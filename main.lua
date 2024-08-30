@@ -1,4 +1,4 @@
--- VERSION 1.1
+-- VERSION 1.2
 
 _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 
@@ -6,6 +6,12 @@ _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 local mod = UniqueProgressBarIcon
 
 if not REPENTOGON then return end
+
+local saveManager = require("src_upbi.save_manager")
+saveManager.Init(UniqueProgressBarIcon)
+UniqueProgressBarIcon.SaveManager = saveManager
+require("src_upbi.imGui")
+local api = include("src_upbi.api")
 
 local game = Game()
 
@@ -37,140 +43,16 @@ local UNKNOWN_STAGE_FRAME = 17
 ---@field PrimaryTwin PlayerType | nil
 ---@field TwinData IsaacIcon | nil
 ---@field StopRender boolean
-
----@type table<PlayerType, integer>
-local customYOffsets = {}
+---@field ControllerIndex integer
+---@field ShadowPosition Vector | nil
+---@field IconPosition Vector | nil
 
 ---@type IsaacIcon[]
-UniqueProgressBarIcon.Icons = {}
+local isaacIcons = {}
 
 local shadowLocations = Sprite("gfx/ui/stage/progress_coop_positions.anm2", true)
 
----@type table<PlayerType, boolean>
-local customBlacklist = {}
-
----@type table<PlayerType, {Anm2: string | nil, Animation: string | nil, Sprite: Sprite | nil}>
-local customAnims = {
-	[PlayerType.PLAYER_LAZARUS2] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "LazarusRisen" },
-	[PlayerType.PLAYER_LAZARUS2_B] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "LazarusRisenB" },
-	[PlayerType.PLAYER_ESAU] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "Esau" }
-}
-
----@type table<PlayerType, PlayerType>
-local registeredTwins = {
-	[PlayerType.PLAYER_ESAU] = PlayerType.PLAYER_JACOB
-}
-
---#region API
-
----@param num string
----@param errorVar any
----@param funcName string
----@param expectedType string
----@param customMessage? string
-local function UniqueProgressBarError(num, errorVar, funcName, expectedType, customMessage)
-	local messageStart = "[UniqueProgressBarIcon] " ..
-		"Bad Argument #" .. num .. " in UniqueProgressBarIcon." .. funcName
-	local messageAppend = customMessage ~= nil and customMessage or
-		"Attempt to index a " .. type(errorVar) .. " value, field '" .. tostring(errorVar) ..
-		"', expected " .. expectedType .. "."
-	error(messageStart .. messageAppend)
-end
-
----@param playerType PlayerType
-local function UniqueIsaacPlayerTypeCheck(playerType, funcName)
-	if not playerType
-		or type(playerType) ~= "number"
-	then
-		UniqueProgressBarError("1", playerType, funcName, "PlayerType")
-		return false
-	elseif not EntityConfig.GetPlayer(playerType) then
-		UniqueProgressBarError("1", playerType, "PlayerType",
-			"(PlayerType is not in valid range between 0 and " .. EntityConfig:GetMaxPlayerType() .. ").")
-		return false
-	end
-	return true
-end
-
----Offset the Y position of an icon for a specific PlayerType.
----@param playerType PlayerType
----@param offset integer
-function UniqueProgressBarIcon.AddIconYOffset(playerType, offset)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "AddIconYOffset") then return end
-	if not offset
-		or type(offset) ~= "number"
-	then
-		UniqueProgressBarError("2", offset, "AddIconYOffset", "number")
-	end
-	customYOffsets[playerType] = offset
-end
-
----Set a different icon to use for a specific PlayerType instead of their default co-op icon. Set the anm2 file it needs to play and its respective animation or provide the Sprite object directly.
----@param playerType PlayerType
----@param anm2 string
----@param animation string
----@overload fun(playerType: PlayerType, sprite: Sprite)
-function UniqueProgressBarIcon.SetIcon(playerType, anm2, animation)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "SetIcon") then return end
-	if not anm2
-		or (
-			type(anm2) ~= "string"
-			and type(anm2) ~= "userdata"
-		)
-		or (
-			type(anm2) == "userdata"
-			and getmetatable(anm2).__type ~= "Sprite"
-		)
-	then
-		UniqueProgressBarError("2", anm2, "SetIcon", "string or Sprite")
-		return
-	elseif type(anm2) == "string"
-	and (not animation
-		or type(animation) ~= "string")
-	then
-		UniqueProgressBarError("3", animation, "SetIcon", "string")
-		return
-	end
-
-	local sprite, wasLoaded = Sprite(anm2, true)
-	if type(anm2) ~= "string" then
-		---@cast anm2 Sprite
-		sprite = anm2
-		wasLoaded = true
-	end
-	if not wasLoaded then
-		UniqueProgressBarError("2", anm2, "SetIcon", "string", "(Anm2 failed to load).")
-	end
-
-	sprite:Stop()
-	
-	if type(anm2) == "string" then
-		sprite:Play(animation)
-		if not sprite:IsPlaying(animation) then
-			UniqueProgressBarError("3", animation, "string", "(Animation name is invalid).")
-		end
-		sprite:SetFrame(animation, 0)
-	end
-	local animTable = type(anm2) == "userdata" and {Sprite = sprite} or { Anm2 = anm2, Animation = animation }
-	customAnims[playerType] = animTable
-end
-
----Reset the icon set by UniqueProgressBarIcon.SetIcon()
----@param playerType PlayerType
-function UniqueProgressBarIcon.ResetIcon(playerType)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "ResetIcon") then return end
-	customAnims[playerType] = nil
-end
-
----If you want to do your own thing. Sets whether the icon will be rendered or not.
----@param playerType PlayerType
----@param bool boolean True to stop rendering, false to render as normal again.
-function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
-	customBlacklist[playerType] = bool
-end
-
---#endregion
+--#region progress bar position calculation
 
 local function isTransitioningToSameFloorRepAlt(currentStage, nextStage, currentStageType, nextStageType)
 	if currentStage ~= nextStage or currentStage > LevelStage.STAGE3_2 then return false end
@@ -272,6 +154,10 @@ end
 
 mod:AddCallback(ModCallbacks.MC_POST_NIGHTMARE_SCENE_SHOW, mod.OnNightmareShow)
 
+--#endregion
+
+--#region rendering
+
 ---@param player EntityPlayer
 ---@overload fun(playerType: PlayerType, playerName: string)
 local function tryCreateModdedCoopIcon(player, playerName)
@@ -305,13 +191,21 @@ end
 ---@overload fun(playerType: PlayerType, playerName: string)
 function UniqueProgressBarIcon.CreateIcon(player, playerName)
 	local playerType = type(player) == "number" and player or player:GetPlayerType()
-	local iconData = { PlayerType = playerType, Icon = nil, Offset = Vector.Zero, RenderLayer = 0, StopRender = false }
+	local iconData = {
+		PlayerType = playerType,
+		Icon = nil,
+		Offset = Vector.Zero,
+		RenderLayer = 0,
+		StopRender = false,
+		ControllerIndex =
+			type(player) == "number" and 0 or player.ControllerIndex
+	}
 	local anm2ToLoad = "gfx/ui/coop menu.anm2"
 	local animToPlay = "Main"
 	local frameToSet = 0
 	local loadedModdedSprite = false
-	if customAnims[playerType] then
-		local customAnimation = customAnims[playerType]
+	if api.CustomAnims[playerType] then
+		local customAnimation = api.CustomAnims[playerType]
 		if customAnimation.Sprite then
 			customAnimation.Sprite:SetFrame(customAnimation.Sprite:GetAnimation(), 0)
 			iconData.Icon = customAnimation.Sprite
@@ -335,24 +229,57 @@ function UniqueProgressBarIcon.CreateIcon(player, playerName)
 		coopIcon:SetFrame(animToPlay, frameToSet)
 		iconData.Icon = coopIcon
 	end
-	if customYOffsets[playerType] then
-		iconData.Offset = Vector(iconData.Offset.X, customYOffsets[playerType])
+	if api.CustomYOffsets[playerType] then
+		iconData.Offset = Vector(iconData.Offset.X, api.CustomYOffsets[playerType])
 	end
-	if registeredTwins[playerType] then
-		iconData.PrimaryTwin = registeredTwins[playerType]
+	if api.RegisteredTwins[playerType] then
+		iconData.PrimaryTwin = api.RegisteredTwins[playerType]
 	end
-	iconData.StopRender = customBlacklist[playerType] == true
+	iconData.StopRender = api.CustomBlacklist[playerType] == true
 	return iconData
 end
 
-local function loadIsaacIcons()
+---@param player EntityPlayer
+local function shouldIconBeCreated(player)
+	local settingsSave = saveManager.GetSettingsSave()
+	if not settingsSave then return false end
+	local playerType = player:GetPlayerType()
+	if not player.Parent
+		and not api.RegisteredTwins[playerType]
+	then
+		if GetPtrHash(Isaac.GetPlayer()) ~= GetPtrHash(player)
+			and not settingsSave.DisplayCoopPlayers
+		then
+			return false
+		end
+		return true
+	end
+	if api.RegisteredTwins[playerType] then
+		if not settingsSave.DisplayTwins then
+			for _, otherPlayer in ipairs(PlayerManager.GetPlayers()) do
+				if otherPlayer:GetPlayerType() == api.RegisteredTwins[playerType]
+					and player.ControllerIndex == otherPlayer.ControllerIndex
+				then
+					return false
+				end
+			end
+			return true
+		end
+		return true
+	end
+	if player.Parent and settingsSave.DisplayStrawmen and not api.RegisteredTwins[playerType] then
+		return true
+	end
+	return false
+end
+
+function mod:LoadIsaacIcons()
 	---@type IsaacIcon[]
 	local iconList = {}
 	for _, player in ipairs(PlayerManager.GetPlayers()) do
-		local playerType = player:GetPlayerType()
-		--Stop strawman-like or other-twin players if they aren't a registered twin
-		if (player.Parent or GetPtrHash(player:GetMainTwin()) ~= GetPtrHash(player)) and not registeredTwins[playerType] then goto continue end
+		if not shouldIconBeCreated(player) then goto continue end
 		local iconData = UniqueProgressBarIcon.CreateIcon(player)
+		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.POST_CREATE_ICON, iconData, player)
 		--iconData.Icon.Color = Color(0,0,0,0.5)
 		table.insert(iconList, iconData)
 		::continue::
@@ -361,14 +288,21 @@ local function loadIsaacIcons()
 	if #iconList > 4 then
 		for index = #iconList, 1, -1 do
 			local iconData = iconList[index]
-			if iconList[index - 1] and iconList[index - 1].PlayerType == iconData.PrimaryTwin then
-				iconList[index - 1].TwinData = iconData
-				table.remove(iconList, index)
+			for _, iconData2 in ipairs(iconList) do
+				if iconData2.PlayerType == iconData.PrimaryTwin
+					and iconData2.ControllerIndex == iconData2.ControllerIndex
+					and not iconData2.TwinData
+					and not iconData.TwinData
+				then
+					iconList[index - 1].TwinData = iconData
+					table.remove(iconList, index)
+					break
+				end
 			end
 		end
 	end
 	--Hard cap at 4
-	UniqueProgressBarIcon.Icons = {
+	isaacIcons = {
 		iconList[1],
 		iconList[2],
 		iconList[3],
@@ -401,11 +335,13 @@ local function renderIsaacIcon(iconData, renderPos, playerNum)
 	end
 	local layer = iconData.RenderLayer
 	local shadowX, shadowY = renderX, renderY + 3
-	if customYOffsets[iconData.PlayerType] then
-		shadowY = shadowY - (customYOffsets[iconData.PlayerType] * scale)
+	if api.CustomYOffsets[iconData.PlayerType] then
+		shadowY = shadowY - (api.CustomYOffsets[iconData.PlayerType] * scale)
 	end
-	shadowLocations:Render(Vector(shadowX, shadowY))
-	sprite:RenderLayer(layer, Vector(renderX, renderY))
+	iconData.ShadowPosition = Vector(shadowX, shadowY)
+	iconData.IconPosition = Vector(renderX, renderY) --Mostly used just to expose the icon position in case other mods wanna use it
+	shadowLocations:Render(iconData.ShadowPosition)
+	sprite:RenderLayer(layer, iconData.IconPosition)
 
 	if Isaac.GetFrameCount() % 2 == 0 then
 		sprite:Update()
@@ -450,7 +386,7 @@ function mod:RenderIsaacIcons(renderPos, isStageAPI)
 	local iconOffset = iconFrameData:GetPos()
 	local shadowScale = shadowFrameData:GetScale()
 
-	for playerNum, iconData in ipairs(UniqueProgressBarIcon.Icons) do
+	for playerNum, iconData in ipairs(isaacIcons) do
 		if iconData.TwinData then
 			shadowLocations.Scale = shadowScale
 			local sprite = iconData.TwinData.Icon
@@ -470,15 +406,18 @@ function mod:RenderIsaacIcons(renderPos, isStageAPI)
 		end
 		renderIsaacIcon(iconData, renderPos, playerNum)
 	end
+	Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.POST_ICONS_RENDER, isaacIcons, shadowLocations, renderPos)
 end
 
 function mod:OnNightmareRender()
 	if NightmareScene.IsDogmaNightmare() then return end
+	local renderPos = Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconMapOffset + movingPos, 20)
 
 	if currentNightmareFrame == 0 then
 		NightmareScene.GetProgressBarSprite():GetLayer(1):SetVisible(false)
-		loadIsaacIcons()
-		shadowLocations:SetFrame(tostring(#UniqueProgressBarIcon.Icons), 0)
+		mod:LoadIsaacIcons()
+		shadowLocations:SetFrame(tostring(#isaacIcons), 0)
+		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.POST_ICONS_INIT, isaacIcons, shadowLocations)
 	end
 
 	currentNightmareFrame = currentNightmareFrame + 1
@@ -489,7 +428,7 @@ function mod:OnNightmareRender()
 			movingPos = movingPos - ICON_SPEED
 		end
 	end
-	mod:RenderIsaacIcons(Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconMapOffset + movingPos, 20))
+	mod:RenderIsaacIcons(renderPos)
 end
 
 mod:AddCallback(ModCallbacks.MC_POST_NIGHTMARE_SCENE_RENDER, mod.OnNightmareRender)
@@ -500,11 +439,11 @@ end
 
 function mod:TestCoopIcon()
 	if currentNightmareFrame == 0 then
-		loadIsaacIcons()
+		mod:LoadIsaacIcons()
 		currentNightmareFrame = 1
 	end
 	if game:IsPaused() then return end
-	for i, iconData in ipairs(UniqueProgressBarIcon.Icons) do
+	for i, iconData in ipairs(isaacIcons) do
 		local renderPos = Vector((Isaac.GetScreenWidth() / 2) - ((i - 1) * 32) + ((i - 1) * 64),
 			(Isaac.GetScreenHeight() / 2))
 		iconData.Icon:RenderLayer(iconData.RenderLayer, renderPos)
@@ -527,17 +466,21 @@ function mod:RenderForStageAPI(name)
 		loadedIconForStageAPI = false
 	end
 	if not renderPos or stageAnimData.State ~= 2 then return end
+	renderPos = Vector(renderPos.X, renderPos.Y - 3)
 	if stageAnimData.State == 2 and stageAnimData.Frame > 150 and not loadedIconForStageAPI then
 		stageAPIIcon:GetLayer(0):SetVisible(false)
 		stageAPIIcon:GetLayer(1):SetVisible(false)
-		loadIsaacIcons()
+		mod:LoadIsaacIcons()
 		loadedIconForStageAPI = true
-		shadowLocations:SetFrame(tostring(#UniqueProgressBarIcon.Icons), 0)
+		shadowLocations:SetFrame(tostring(#isaacIcons), 0)
+		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.POST_ICONS_INIT, isaacIcons, shadowLocations)
 	end
 
-	mod:RenderIsaacIcons(Vector(renderPos.X, renderPos.Y - 3), true)
+	mod:RenderIsaacIcons(renderPos, true)
 end
 
 mod:AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, mod.RenderForStageAPI)
+
+--#endregion
 
 return mod
