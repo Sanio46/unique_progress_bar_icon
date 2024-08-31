@@ -444,6 +444,7 @@ function mod:OnNightmareRender()
 	local renderPos = Vector((Isaac.GetScreenWidth() / 2) - firstIconPos + iconMapOffset + movingPos, 20)
 
 	if currentNightmareFrame == 0 then
+		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.PRE_ICONS_INIT, isaacIcons, shadowLocations)
 		NightmareScene.GetProgressBarSprite():GetLayer(1):SetVisible(false)
 		mod:LoadIsaacIcons()
 		shadowLocations:SetFrame(tostring(#isaacIcons), 0)
@@ -498,6 +499,7 @@ function mod:RenderForStageAPI(name)
 	if not renderPos or stageAnimData.State ~= 2 then return end
 	renderPos = Vector(renderPos.X, renderPos.Y - 3)
 	if stageAnimData.State == 2 and stageAnimData.Frame > 150 and not loadedIconForStageAPI then
+		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.PRE_ICONS_INIT, isaacIcons, shadowLocations)
 		stageAPIIcon:GetLayer(0):SetVisible(false)
 		stageAPIIcon:GetLayer(1):SetVisible(false)
 		mod:LoadIsaacIcons()

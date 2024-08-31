@@ -131,41 +131,6 @@ function UniqueProgressBarIcon.ResetIcon(playerType)
 	api.CustomAnims[playerType] = nil
 end
 
----If you want to do your own thing. Sets whether the icon will be rendered or not.
----@param playerType PlayerType
----@param bool boolean True to stop rendering, false to render as normal again.
-function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
-	api.StopRender[playerType] = bool
-end
-
----Prevents the icon for the PlayerType from being generated.
----@param playerType PlayerType
----@param bool boolean True to stop rendering, false to render as normal again.
-function UniqueProgressBarIcon.BlacklistPlayerType(playerType, bool)
-	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
-	api.CustomBlacklist[playerType] = bool
-end
-
----Register a twin player that's meant be paired with another player. The twin player will be treated slightly differently. For example, twinPlayerType should be Esau, and mainPlayerType should be Jacob.
----@param mainPlayerType PlayerType
----@param twinPlayerType PlayerType
-function UniqueProgressBarIcon.RegisterTwin(twinPlayerType, mainPlayerType)
-	if not UniqueIsaacPlayerTypeCheck(mainPlayerType, "RegisterTwin") then
-		return
-	elseif not UniqueIsaacPlayerTypeCheck(twinPlayerType, "RegisterTwin") then
-		return
-	elseif mainPlayerType == twinPlayerType then
-		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
-			"(mainPlayerType and twinPlayerType cannot be equal).")
-		return
-	elseif mainPlayerType == api.RegisteredTwins[twinPlayerType] then
-		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
-			"(Cannot assign twinPlayerType as they already have an assigned twin).")
-	end
-	api.RegisteredTwins[mainPlayerType] = twinPlayerType
-end
-
 ---Like SetIcon, but for co-op babies
 ---@param babySubType BabySubType
 ---@param anm2 string
@@ -206,9 +171,60 @@ function UniqueProgressBarIcon.SetBabyIcon(babySubType, anm2, frame)
 	api.CustomCoopBabies[babySubType] = animTable
 end
 
+---Reset the icon set by UniqueProgressBarIcon.SetBabyIcon()
+---@param babySubType BabySubType
+function UniqueProgressBarIcon.ResetBabyIcon(babySubType)
+	if not babySubType
+		or type(babySubType) ~= "number"
+	then
+		UniqueProgressBarError("1", babySubType, "SetBabyIcon", "BabySubType")
+		return false
+	elseif not EntityConfig.GetBaby(babySubType) then
+		UniqueProgressBarError("1", babySubType, "SetBabyIcon", "BabySubType", "(BabySubType is not in valid range between 0 and " .. EntityConfig:GetMaxBabyID() .. ").")
+		return false
+	end
+	api.CustomCoopBabies[babySubType] = nil
+end
+
+---If you want to do your own thing. Sets whether the icon will be rendered or not.
+---@param playerType PlayerType
+---@param bool boolean True to stop rendering, false to render as normal again.
+function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
+	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
+	api.StopRender[playerType] = bool
+end
+
+---Prevents the icon for the PlayerType from being generated.
+---@param playerType PlayerType
+---@param bool boolean True to set blacklist, false to lift it.
+function UniqueProgressBarIcon.BlacklistPlayerType(playerType, bool)
+	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
+	api.CustomBlacklist[playerType] = bool
+end
+
+---Register a twin player that's meant be paired with another player. The twin player will be treated slightly differently. For example, twinPlayerType should be Esau, and mainPlayerType should be Jacob.
+---@param mainPlayerType PlayerType
+---@param twinPlayerType PlayerType
+function UniqueProgressBarIcon.RegisterTwin(twinPlayerType, mainPlayerType)
+	if not UniqueIsaacPlayerTypeCheck(mainPlayerType, "RegisterTwin") then
+		return
+	elseif not UniqueIsaacPlayerTypeCheck(twinPlayerType, "RegisterTwin") then
+		return
+	elseif mainPlayerType == twinPlayerType then
+		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
+			"(mainPlayerType and twinPlayerType cannot be equal).")
+		return
+	elseif mainPlayerType == api.RegisteredTwins[twinPlayerType] then
+		UniqueProgressBarError("2", twinPlayerType, "RegisterTwin", "PlayerType",
+			"(Cannot assign twinPlayerType as they already have an assigned twin).")
+	end
+	api.RegisteredTwins[mainPlayerType] = twinPlayerType
+end
+
 UniqueProgressBarIcon.Callbacks = {
 	POST_CREATE_ICON = "UNIQUE_PROGRESS_BAR_ICON_POST_CREATE_ICON",
 	POST_ICONS_RENDER = "UNIQUE_PROGRESS_BAR_ICON_POST_ICONS_RENDER",
+	PRE_ICONS_INIT = "UNIQUE_PROGRESS_BAR_ICON_PRE_ICONS_INIT",
 	POST_ICONS_INIT = "UNIQUE_PROGRESS_BAR_ICON_POST_ICONS_INIT"
 }
 
