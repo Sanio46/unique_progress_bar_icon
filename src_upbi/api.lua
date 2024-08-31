@@ -2,21 +2,31 @@ local api = {
 	---@type table<PlayerType, boolean>
 	StopRender = {},
 	---@type table<PlayerType, boolean>
-	CustomBlacklist = {
-		[PlayerType.PLAYER_THESOUL_B] = true
-	},
+	CustomBlacklist = {},
 	---@type table<PlayerType, integer>
 	CustomYOffsets = {},
 	---@type table<PlayerType, {Anm2: string | nil, Animation: string | nil, Sprite: Sprite | nil}>
 	CustomAnims = {
 		[PlayerType.PLAYER_LAZARUS2] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "LazarusRisen" },
 		[PlayerType.PLAYER_LAZARUS2_B] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "LazarusRisenB" },
-		[PlayerType.PLAYER_ESAU] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "Esau" }
+		[PlayerType.PLAYER_ESAU] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "Esau" },
+		[PlayerType.PLAYER_THESOUL_B] = { Anm2 = "gfx/ui/unique_coop_icons.anm2", Animation = "The Soul" }
 	},
 	---@type table<PlayerType, PlayerType>
 	RegisteredTwins = {
 		[PlayerType.PLAYER_ESAU] = PlayerType.PLAYER_JACOB,
 		[PlayerType.PLAYER_LAZARUS2_B] = PlayerType.PLAYER_LAZARUS_B,
+		[PlayerType.PLAYER_THESOUL_B] = PlayerType.PLAYER_THEFORGOTTEN_B
+	},
+	---@type table<BabySubType, {Anm2: string, Frame: integer}>
+	CustomCoopBabies = {
+		[BabySubType.BABY_FOUND_SOUL] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 0 },
+		[BabySubType.BABY_WISP] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 1 },
+		[BabySubType.BABY_DOUBLE] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 2 },
+		[BabySubType.BABY_GLOWING] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 3 },
+		[BabySubType.BABY_ILLUSION] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 4 },
+		[BabySubType.BABY_HOPE] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 5 },
+		[BabySubType.BABY_SOLOMON_A] = { Anm2 = "gfx/ui/unique_coop_baby_icons.anm2", Frame = 6  }
 	}
 }
 
@@ -42,8 +52,7 @@ local function UniqueIsaacPlayerTypeCheck(playerType, funcName)
 		UniqueProgressBarError("1", playerType, funcName, "PlayerType")
 		return false
 	elseif not EntityConfig.GetPlayer(playerType) then
-		UniqueProgressBarError("1", playerType, "PlayerType",
-			"(PlayerType is not in valid range between 0 and " .. EntityConfig:GetMaxPlayerType() .. ").")
+		UniqueProgressBarError("1", playerType, funcName, "PlayerType", "(PlayerType is not in valid range between 0 and " .. EntityConfig:GetMaxPlayerType() .. ").")
 		return false
 	end
 	return true
@@ -155,6 +164,46 @@ function UniqueProgressBarIcon.RegisterTwin(twinPlayerType, mainPlayerType)
 			"(Cannot assign twinPlayerType as they already have an assigned twin).")
 	end
 	api.RegisteredTwins[mainPlayerType] = twinPlayerType
+end
+
+---Like SetIcon, but for co-op babies
+---@param babySubType BabySubType
+---@param anm2 string
+---@param frame integer
+function UniqueProgressBarIcon.SetBabyIcon(babySubType, anm2, frame)
+	if not babySubType
+		or type(babySubType) ~= "number"
+	then
+		UniqueProgressBarError("1", babySubType, "SetBabyIcon", "BabySubType")
+		return false
+	elseif not EntityConfig.GetBaby(babySubType) then
+		UniqueProgressBarError("1", babySubType, "SetBabyIcon", "BabySubType", "(BabySubType is not in valid range between 0 and " .. EntityConfig:GetMaxBabyID() .. ").")
+		return false
+	end
+	if not anm2
+		or type(anm2) ~= "string"
+	then
+		UniqueProgressBarError("2", anm2, "SetBabyIcon", "string")
+		return
+	elseif not frame
+		or type(frame) ~= "number"
+	then
+		UniqueProgressBarError("3", frame, "SetBabyIcon", "	")
+		return
+	end
+
+	local sprite, wasLoaded = Sprite(anm2, true)
+	if not wasLoaded then
+		UniqueProgressBarError("2", anm2, "SetBabyIcon", "string", "(Anm2 failed to load).")
+		return
+	end
+
+	if not sprite:GetAnimationData(sprite:GetDefaultAnimation()):GetLayer(0):GetFrame(frame) then
+		UniqueProgressBarError("3", frame, "SetBabyIcon", "string", "(Animation name is invalid).")
+		return
+	end
+	local animTable = { Anm2 = anm2, Frame = frame }
+	api.CustomCoopBabies[babySubType] = animTable
 end
 
 UniqueProgressBarIcon.Callbacks = {

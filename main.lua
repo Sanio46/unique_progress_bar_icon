@@ -1,4 +1,4 @@
--- VERSION 1.2
+-- VERSION 1.2.1
 
 _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 
@@ -187,6 +187,44 @@ local function tryCreateModdedCoopIcon(player)
 end
 
 ---@param player EntityPlayer
+local function shouldIconBeCreated(player)
+	local settingsSave = saveManager.GetSettingsSave()
+	if not settingsSave then return false end
+	if player.Variant == PlayerVariant.CO_OP_BABY then
+		return settingsSave["DisplayCo-opBabies"]
+	end
+	local playerType = player:GetPlayerType()
+	if api.CustomBlacklist[playerType] == true then return false end
+	if not player.Parent
+		and not api.RegisteredTwins[playerType]
+	then
+		if GetPtrHash(Isaac.GetPlayer()) ~= GetPtrHash(player)
+			and not settingsSave["DisplayCo-opPlayers"]
+		then
+			return false
+		end
+		return true
+	end
+	if api.RegisteredTwins[playerType] then
+		if not settingsSave.DisplayTwins then
+			for _, otherPlayer in ipairs(PlayerManager.GetPlayers()) do
+				if otherPlayer:GetPlayerType() == api.RegisteredTwins[playerType]
+					and player.ControllerIndex == otherPlayer.ControllerIndex
+				then
+					return false
+				end
+			end
+			return true
+		end
+		return true
+	end
+	if player.Parent and settingsSave.DisplayStrawmen and not api.RegisteredTwins[playerType] then
+		return true
+	end
+	return false
+end
+
+---@param player EntityPlayer
 ---@return IsaacIcon
 ---@overload fun(playerType: PlayerType)
 function UniqueProgressBarIcon.CreateIcon(player)
@@ -204,7 +242,35 @@ function UniqueProgressBarIcon.CreateIcon(player)
 	local animToPlay = "Main"
 	local frameToSet = 0
 	local loadedModdedSprite = false
-	if api.CustomAnims[playerType] then
+	local settingsSave = saveManager.GetSettingsSave()
+	if not settingsSave then return iconData end
+
+	if player.Variant == PlayerVariant.CO_OP_BABY then
+		local babyType = player.Variant == BabySubType.BABY_GLITCH and player:GetGlitchBabySubType() or player.SubType
+		iconData.RenderLayer = 1
+		iconData.Offset = Vector(0, 2)
+		if babyType >= BabySubType.BABY_SPIDER and babyType <= BabySubType.BABY_BOUND then
+			frameToSet = babyType + 1
+		elseif api.CustomCoopBabies[babyType] then
+			local customAnimation = api.CustomCoopBabies[babyType]
+			local newSprite = Sprite(customAnimation.Anm2, true)
+			newSprite:SetFrame(newSprite:GetDefaultAnimation(), customAnimation.Frame)
+			iconData.RenderLayer = 0
+			iconData.Icon = newSprite
+			loadedModdedSprite = true
+		end
+	elseif player:IsCoopGhost() and settingsSave["DeadplayersasCo-opghosts"] then
+		local newSprite = Sprite("gfx/ui/unique_coop_ghost_icons.anm2", true)
+		local defaultSkinColor = EntityConfig.GetPlayer(playerType):GetSkinColor()
+		local skinColorFrame = {
+			[SkinColor.SKIN_BLUE] = 1,
+			[SkinColor.SKIN_BLACK] = 2,
+			[SkinColor.SKIN_GREY] = 3
+		}
+		newSprite:SetFrame("Main", skinColorFrame[defaultSkinColor] or 0)
+		loadedModdedSprite = true
+		iconData.Icon = newSprite
+	elseif api.CustomAnims[playerType] then
 		local customAnimation = api.CustomAnims[playerType]
 		if customAnimation.Sprite then
 			customAnimation.Sprite:SetFrame(customAnimation.Sprite:GetAnimation(), 0)
@@ -237,41 +303,6 @@ function UniqueProgressBarIcon.CreateIcon(player)
 	end
 	iconData.StopRender = api.StopRender[playerType] == true
 	return iconData
-end
-
----@param player EntityPlayer
-local function shouldIconBeCreated(player)
-	local settingsSave = saveManager.GetSettingsSave()
-	if not settingsSave then return false end
-	local playerType = player:GetPlayerType()
-	if api.CustomBlacklist[playerType] == true then return false end
-	if not player.Parent
-		and not api.RegisteredTwins[playerType]
-	then
-		if GetPtrHash(Isaac.GetPlayer()) ~= GetPtrHash(player)
-			and not settingsSave.DisplayCoopPlayers
-		then
-			return false
-		end
-		return true
-	end
-	if api.RegisteredTwins[playerType] then
-		if not settingsSave.DisplayTwins then
-			for _, otherPlayer in ipairs(PlayerManager.GetPlayers()) do
-				if otherPlayer:GetPlayerType() == api.RegisteredTwins[playerType]
-					and player.ControllerIndex == otherPlayer.ControllerIndex
-				then
-					return false
-				end
-			end
-			return true
-		end
-		return true
-	end
-	if player.Parent and settingsSave.DisplayStrawmen and not api.RegisteredTwins[playerType] then
-		return true
-	end
-	return false
 end
 
 function mod:LoadIsaacIcons()
@@ -336,9 +367,7 @@ local function renderIsaacIcon(iconData, renderPos, playerNum)
 	end
 	local layer = iconData.RenderLayer
 	local shadowX, shadowY = renderX, renderY + 3
-	if api.CustomYOffsets[iconData.PlayerType] then
-		shadowY = shadowY - (api.CustomYOffsets[iconData.PlayerType] * scale)
-	end
+	shadowY = shadowY - (iconData.Offset.Y * scale)
 	iconData.ShadowPosition = Vector(shadowX, shadowY)
 	iconData.IconPosition = Vector(renderX, renderY) --Mostly used just to expose the icon position in case other mods wanna use it
 	shadowLocations:Render(iconData.ShadowPosition)
