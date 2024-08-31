@@ -235,7 +235,7 @@ function UniqueProgressBarIcon.CreateIcon(player)
 	if api.RegisteredTwins[playerType] then
 		iconData.PrimaryTwin = api.RegisteredTwins[playerType]
 	end
-	iconData.StopRender = api.CustomBlacklist[playerType] == true
+	iconData.StopRender = api.StopRender[playerType] == true
 	return iconData
 end
 
@@ -244,6 +244,7 @@ local function shouldIconBeCreated(player)
 	local settingsSave = saveManager.GetSettingsSave()
 	if not settingsSave then return false end
 	local playerType = player:GetPlayerType()
+	if api.CustomBlacklist[playerType] == true then return false end
 	if not player.Parent
 		and not api.RegisteredTwins[playerType]
 	then
@@ -288,13 +289,13 @@ function mod:LoadIsaacIcons()
 	if #iconList > 4 then
 		for index = #iconList, 1, -1 do
 			local iconData = iconList[index]
-			for _, iconData2 in ipairs(iconList) do
+			for j, iconData2 in ipairs(iconList) do
 				if iconData2.PlayerType == iconData.PrimaryTwin
-					and iconData2.ControllerIndex == iconData2.ControllerIndex
+					and iconData2.ControllerIndex == iconData.ControllerIndex
 					and not iconData2.TwinData
 					and not iconData.TwinData
 				then
-					iconList[index - 1].TwinData = iconData
+					iconList[j].TwinData = iconData
 					table.remove(iconList, index)
 					break
 				end

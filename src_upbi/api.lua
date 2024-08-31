@@ -1,6 +1,10 @@
 local api = {
 	---@type table<PlayerType, boolean>
-	CustomBlacklist = {},
+	StopRender = {},
+	---@type table<PlayerType, boolean>
+	CustomBlacklist = {
+		[PlayerType.PLAYER_THESOUL_B] = true
+	},
 	---@type table<PlayerType, integer>
 	CustomYOffsets = {},
 	---@type table<PlayerType, {Anm2: string | nil, Animation: string | nil, Sprite: Sprite | nil}>
@@ -122,6 +126,14 @@ end
 ---@param playerType PlayerType
 ---@param bool boolean True to stop rendering, false to render as normal again.
 function UniqueProgressBarIcon.StopPlayerTypeRender(playerType, bool)
+	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
+	api.StopRender[playerType] = bool
+end
+
+---Prevents the icon for the PlayerType from being generated.
+---@param playerType PlayerType
+---@param bool boolean True to stop rendering, false to render as normal again.
+function UniqueProgressBarIcon.BlacklistPlayerType(playerType, bool)
 	if not UniqueIsaacPlayerTypeCheck(playerType, "StopPlayerTypeRender") then return end
 	api.CustomBlacklist[playerType] = bool
 end

@@ -82,16 +82,15 @@ UniqueProgressBarIcon.SaveManager.AddCallback(UniqueProgressBarIcon.SaveManager.
 ---@param rawSlot integer
 function imguiSupport:OnSaveSlotLoad(saveSlot, isSlotSelected, rawSlot)
 	if not isSlotSelected then
-		if rawSlot == 0 then
+		if rawSlot == 0 and not ImGui.ElementExists("UPBI_saveSlotNotice") then
 			ImGui.AddText("UPBI_settingsWindow",
 				"NOTICE: No options are accessible until a slot is selected. Please select a save file!", true,
-				"saveSlotNotice")
-			ImGui.SetTextColor("saveSlotNotice", 1, 0.9, 0)
+				"UPBI_saveSlotNotice")
+			ImGui.SetTextColor("UPBI_saveSlotNotice", 1, 0.9, 0)
 		end
 		return
 	end
-	if ImGui.ElementExists("saveSlotNotice") then
-		ImGui.RemoveElement("saveSlotNotice")
+	if ImGui.ElementExists("UPBI_saveSlotNotice") then
 		imguiSupport:CreateImguiWindows()
 		return
 	end
