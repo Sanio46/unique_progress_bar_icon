@@ -1,4 +1,4 @@
--- VERSION 1.2.1
+-- VERSION 1.2.2
 
 _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 
@@ -127,14 +127,17 @@ function mod:CalculateProgressBarLength()
 	else
 		barLength = 8
 		local progressBar = NightmareScene.GetProgressBarMap()
-		for levelStage = LevelStage.STAGE4_2, LevelStage.STAGE7 do
-			local frame = progressBar[levelStage + 1]
-			if levelEnd >= levelStage then
-				if levelStage == LevelStage.STAGE4_2 and frame == 25 then
-					barLength = barLength + 1
-				elseif levelStage == LevelStage.STAGE4_3 and frame == UNKNOWN_STAGE_FRAME then
+		if levelEnd >= LevelStage.STAGE4_2 then
+			for levelStage = LevelStage.STAGE4_3, LevelStage.STAGE7 do
+				local frame = progressBar[levelStage + 1]
+				if levelStage == LevelStage.STAGE4_3
+					and frame == UNKNOWN_STAGE_FRAME
+					and levelEnd >= levelStage
+				then
 					startPos = startPos - 1
-				elseif levelStage >= LevelStage.STAGE4_3 then
+					--If it's a known stage and you're currently at or ahead of the stage
+					--OR the specific exception of going to Corpse II
+				elseif (frame ~= UNKNOWN_STAGE_FRAME and levelEnd >= levelStage) or (levelStage == LevelStage.STAGE4_3 and frame == 25) then
 					barLength = barLength + 1
 				end
 			end
