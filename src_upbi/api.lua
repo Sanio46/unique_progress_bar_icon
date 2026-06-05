@@ -227,9 +227,13 @@ function UniqueProgressBarIcon.RegisterTwin(twinPlayerType, mainPlayerType)
 end
 
 UniqueProgressBarIcon.Callbacks = {
+	--(IsaacIcon IconData, EntityPlayer Player), Optional Arg: PlayerType - Called after creating an icon for the provided player. The data inside `IconData` can be modified.
 	POST_CREATE_ICON = "UNIQUE_PROGRESS_BAR_ICON_POST_CREATE_ICON",
+	--(IsaacIcon[] Icons, Sprite ShadowSprite, Vector RenderPos) - Called each render frame for rendering the custom icons.
 	POST_ICONS_RENDER = "UNIQUE_PROGRESS_BAR_ICON_POST_ICONS_RENDER",
+	--No callback arguments. Called before initializing icons for rendering.
 	PRE_ICONS_INIT = "UNIQUE_PROGRESS_BAR_ICON_PRE_ICONS_INIT",
+	--No callbacka rguments. Called after initializing icons for rendering.
 	POST_ICONS_INIT = "UNIQUE_PROGRESS_BAR_ICON_POST_ICONS_INIT"
 }
 

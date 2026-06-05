@@ -1,11 +1,12 @@
--- VERSION 1.2.2
+-- VERSION 1.2.3
+
+if not REPENTOGON then return end
 
 _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 
 ---@class ModReference
 local mod = UniqueProgressBarIcon
 
-if not REPENTOGON then return end
 
 local saveManager = require("src_upbi.save_manager")
 saveManager.Init(UniqueProgressBarIcon)
@@ -314,7 +315,7 @@ function mod:LoadIsaacIcons()
 	for _, player in ipairs(PlayerManager.GetPlayers()) do
 		if not shouldIconBeCreated(player) then goto continue end
 		local iconData = UniqueProgressBarIcon.CreateIcon(player)
-		Isaac.RunCallback(UniqueProgressBarIcon.Callbacks.POST_CREATE_ICON, iconData, player)
+		Isaac.RunCallbackWithParam(UniqueProgressBarIcon.Callbacks.POST_CREATE_ICON, player:GetPlayerType(), iconData, player)
 		table.insert(iconList, iconData)
 		::continue::
 	end
