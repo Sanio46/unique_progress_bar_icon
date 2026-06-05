@@ -7,7 +7,6 @@ _G.UniqueProgressBarIcon = RegisterMod("UniqueProgressBarIcon", 1)
 ---@class ModReference
 local mod = UniqueProgressBarIcon
 
-
 local saveManager = require("src_upbi.save_manager")
 saveManager.Init(UniqueProgressBarIcon)
 UniqueProgressBarIcon.SaveManager = saveManager
