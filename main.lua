@@ -1,4 +1,4 @@
--- VERSION 1.2.3
+-- VERSION 1.2.4
 
 if not REPENTOGON then return end
 
@@ -34,6 +34,8 @@ local direction = ICON_DIRECTION.FORWARD
 local repDirection = ICON_DIRECTION.STILL
 local useRepDirection = false
 local UNKNOWN_STAGE_FRAME = 17
+
+local ISAAC_INDICATOR_LAYER = 0
 
 ---@class IsaacIcon
 ---@field PlayerType PlayerType
@@ -388,7 +390,7 @@ end
 local function getIconFrameData(spr)
 	local animData1 = spr:GetCurrentAnimationData()
 	if not animData1 then return end
-	local layerData1 = animData1:GetLayer(0)
+	local layerData1 = animData1:GetLayer(ISAAC_INDICATOR_LAYER)
 	if not layerData1 then return end
 	local frameData1 = layerData1:GetFrame(spr:GetFrame())
 	if not frameData1 then return end
@@ -448,6 +450,10 @@ function mod:OnNightmareRender()
 
 	if currentNightmareFrame == 0 then
 		NightmareScene.GetProgressBarSprite():GetLayer(1):SetVisible(false)
+		if communityRemix and NightmareScene.GetProgressBarSprite():GetLayer(2) then
+			ISAAC_INDICATOR_LAYER = 2
+			NightmareScene.GetProgressBarSprite():GetLayer(ISAAC_INDICATOR_LAYER):SetVisible(false)
+		end
 		mod:LoadIsaacIcons()
 	end
 
